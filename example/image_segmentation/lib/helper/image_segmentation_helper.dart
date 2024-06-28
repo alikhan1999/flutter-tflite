@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
+import 'dart:isolate';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/services.dart';
 import 'package:image_segmentation/helper/isolate_inference.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
-import 'dart:isolate';
 
 class ImageSegmentationHelper {
   late Interpreter _interpreter;
@@ -53,12 +54,11 @@ class ImageSegmentationHelper {
 
   _loadModel() async {
     final options = InterpreterOptions();
-    _interpreter = await Interpreter.fromAsset('assets/deeplabv3.tflite',
-        options: options);
+    _interpreter = await Interpreter.fromAsset('assets/model.tflite', options: options);
   }
 
   _loadLabel() async {
-    final labelString = await rootBundle.loadString('assets/labelmap.txt');
+    final labelString = await rootBundle.loadString('assets/labels.txt');
     _labels = labelString.split('\n');
   }
 
@@ -71,13 +71,10 @@ class ImageSegmentationHelper {
     await _isolateInference.start();
   }
 
-  Future<List<List<List<double>>>?> inferenceCameraFrame(
-      CameraImage cameraImage) async {
-    final inferenceModel = InferenceModel(
-        cameraImage, _interpreter.address, _inputShape, _outputShape);
+  Future<List<List<List<double>>>?> inferenceCameraFrame(CameraImage cameraImage) async {
+    final inferenceModel = InferenceModel(cameraImage, _interpreter.address, _inputShape, _outputShape);
     ReceivePort responsePort = ReceivePort();
-    _isolateInference.sendPort
-        .send(inferenceModel..responsePort = responsePort.sendPort);
+    _isolateInference.sendPort.send(inferenceModel..responsePort = responsePort.sendPort);
     final results = await responsePort.first;
     return results;
   }

@@ -16,12 +16,12 @@
 
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:image_segmentation/helper/image_segmentation_helper.dart';
 import 'package:image/image.dart' as image_lib;
-import 'dart:ui' as ui;
+import 'package:image_segmentation/helper/image_segmentation_helper.dart';
 
 late List<CameraDescription> _cameras;
 
@@ -67,14 +67,9 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   List<int>? _labelsIndex;
 
   Future<void> _initCamera() async {
-    _cameraDescription = _cameras.firstWhere(
-        (element) => element.lensDirection == CameraLensDirection.back);
-    _cameraController = CameraController(
-        _cameraDescription, ResolutionPreset.medium,
-        imageFormatGroup: Platform.isIOS
-            ? ImageFormatGroup.bgra8888
-            : ImageFormatGroup.yuv420,
-        enableAudio: false);
+    _cameraDescription = _cameras.firstWhere((element) => element.lensDirection == CameraLensDirection.back);
+    _cameraController = CameraController(_cameraDescription, ResolutionPreset.medium,
+        imageFormatGroup: Platform.isIOS ? ImageFormatGroup.bgra8888 : ImageFormatGroup.yuv420, enableAudio: false);
     await _cameraController!.initialize().then((value) {
       _cameraController!.startImageStream(_imageAnalysis);
       if (mounted) {
@@ -90,16 +85,12 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
     }
     _isProcessing = true;
     // run image segmentation
-    final masks =
-        await _imageSegmentationHelper.inferenceCameraFrame(cameraImage);
+    final masks = await _imageSegmentationHelper.inferenceCameraFrame(cameraImage);
     _isProcessing = false;
     if (mounted) {
       // convert mask to image, if Platform is Android we need to swap width
       // and height because camera image in android is landscape
-      _convertToImage(
-          masks,
-          Platform.isIOS ? cameraImage.width : cameraImage.height,
-          Platform.isIOS ? cameraImage.height : cameraImage.width);
+      _convertToImage(masks, Platform.isIOS ? cameraImage.width : cameraImage.height, Platform.isIOS ? cameraImage.height : cameraImage.width);
     }
   }
 
@@ -125,8 +116,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   }
 
   // convert output mask to image
-  void _convertToImage(List<List<List<double>>>? masks, int originImageWidth,
-      int originImageHeight) async {
+  void _convertToImage(List<List<List<double>>>? masks, int originImageWidth, int originImageHeight) async {
     if (masks == null) return null;
     final width = masks.length;
     final height = masks.first.length;
@@ -167,15 +157,11 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
     }
 
     // convert image matrix to image
-    image_lib.Image convertedImage = image_lib.Image.fromBytes(
-        width: width,
-        height: height,
-        bytes: Uint8List.fromList(imageMatrix).buffer,
-        numChannels: 4);
+    image_lib.Image convertedImage =
+        image_lib.Image.fromBytes(width: width, height: height, bytes: Uint8List.fromList(imageMatrix).buffer, numChannels: 4);
 
     // resize output image to match original image
-    final resizeImage = image_lib.copyResize(convertedImage,
-        width: originImageWidth, height: originImageHeight);
+    final resizeImage = image_lib.copyResize(convertedImage, width: originImageWidth, height: originImageHeight);
 
     // convert image to ui.Image to display on screen
     final bytes = image_lib.encodePng(resizeImage);
@@ -192,13 +178,10 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
     // calculate scale to fit output image to screen
     var scale = 1.0;
     if (_displayImage != null) {
-      final minOutputSize = _displayImage!.width > _displayImage!.height
-          ? _displayImage!.height
-          : _displayImage!.width;
-      final minScreenSize =
-          MediaQuery.of(context).size.width > MediaQuery.of(context).size.height
-              ? MediaQuery.of(context).size.height
-              : MediaQuery.of(context).size.width;
+      final minOutputSize = _displayImage!.width > _displayImage!.height ? _displayImage!.height : _displayImage!.width;
+      final minScreenSize = MediaQuery.of(context).size.width > MediaQuery.of(context).size.height
+          ? MediaQuery.of(context).size.height
+          : MediaQuery.of(context).size.width;
       scale = minScreenSize / minOutputSize;
     }
     return Stack(
@@ -224,14 +207,11 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     // parse color from label color
-                    color: Color(ImageSegmentationHelper
-                            .labelColors[_labelsIndex![index]])
-                        .withOpacity(0.5),
+                    color: Color(ImageSegmentationHelper.labelColors[_labelsIndex![index]]).withOpacity(0.5),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    _imageSegmentationHelper
-                        .getLabelsName(_labelsIndex![index]),
+                    _imageSegmentationHelper.getLabelsName(_labelsIndex![index]),
                     style: const TextStyle(
                       fontSize: 12,
                     ),
@@ -247,12 +227,12 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Center(
-          child: Image.asset('assets/images/tfl_logo.png'),
-        ),
-        backgroundColor: Colors.black.withOpacity(0.5),
-      ),
+      // appBar: AppBar(
+      //   title: Center(
+      //     child: Image.asset('assets/images/tfl_logo.png'),
+      //   ),
+      //   backgroundColor: Colors.black.withOpacity(0.5),
+      // ),
       body: cameraWidget(context),
     );
   }
